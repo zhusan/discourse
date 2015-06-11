@@ -12,14 +12,25 @@ var localCache = [];
 **/
 function lookup(username) {
   return new Em.RSVP.Promise(function (resolve) {
+
+    if (username.length < Discourse.SiteSettings.min_username_length) {
+      resolve(false);
+      return;
+    }
+
     var cached = localCache[username];
 
     // If we have a cached answer, return it
     if (typeof cached !== "undefined") {
-      resolve(cached);
+      if (cached.then) {
+        cached.then(function(username){resolve(username)});
+      } else {
+        resolve(cached);
+      }
     } else {
       Discourse.ajax("/users/is_local_username", { data: { username: username } }).then(function(r) {
-        localCache[username] = r.valid;
+        // lower case i turkish bug?
+        localCache[username] = _.include(r.valid, username.toLowerCase);
         resolve(r.valid);
       });
     }
