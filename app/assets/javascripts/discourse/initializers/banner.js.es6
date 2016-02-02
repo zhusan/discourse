@@ -15,5 +15,7 @@ export default {
     messageBus.subscribe("/site/banner", function (ban) {
       site.set("banner", Em.Object.create(ban));
     });
+
+
   }
 };

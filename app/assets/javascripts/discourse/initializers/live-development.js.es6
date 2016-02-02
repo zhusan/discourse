@@ -6,6 +6,23 @@ export default {
   initialize(container) {
     const messageBus = container.lookup('message-bus:main');
 
+    let t0;
+
+    Ember.subscribe("render", {
+      before: function(name, timestamp, payload) {
+        if (payload.containerKey === 'cloaked-collection-view') {
+          t0 = new Date().getTime();
+        }
+
+      },
+
+      after: function(name, timestamp, payload) {
+        if (payload.containerKey === 'cloaked-collection-view') {
+          console.log(new Date().getTime() - t0);
+        }
+      }
+    });
+
     // subscribe to any site customizations that are loaded
     $('link.custom-css').each(function() {
       const split = this.href.split("/"),

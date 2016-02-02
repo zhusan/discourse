@@ -7,6 +7,7 @@ const CloakedCollectionView = Ember.CollectionView.extend({
   offsetFixedBottomElement: null,
   loadingHTML: 'Loading...',
   scrollDebounce: 10,
+  _debugContainerKey: 'cloaked-collection-view',
 
   init() {
     const cloakView = this.get('cloakView'),
