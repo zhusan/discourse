@@ -188,8 +188,7 @@ class PostDestroyer
   def update_associated_category_latest_topic
     return unless @post.topic && @post.topic.category
     return unless @post.id == @post.topic.category.latest_post_id || (@post.is_first_post? && @post.topic_id == @post.topic.category.latest_topic_id)
-
-    @post.topic.category.update_latest
+    Category.update_latest(@post.topic.category_id) if @post.topic.category_id
   end
 
   def update_user_counts

@@ -17,17 +17,11 @@ class ScoreCalculator
 
   # Calculate the score for all posts based on the weightings
   def calculate(min_topic_age=nil)
-
     update_posts_score(min_topic_age)
-
     update_posts_rank(min_topic_age)
-
     update_topics_rank(min_topic_age)
-
     update_topics_percent_rank(min_topic_age)
-
   end
-
 
   private
 
@@ -36,15 +30,14 @@ class ScoreCalculator
     @weightings.each_key { |k| components << "COALESCE(#{k}, 0) * :#{k}" }
     components = components.join(" + ")
 
-    builder = SqlBuilder.new(
-      "UPDATE posts SET score = x.score
-       FROM (SELECT id, #{components} as score FROM posts) AS x
-       /*where*/"
+    builder = SqlBuilder.new <<-SQL
+      UPDATE posts
+         SET score = x.score
+        FROM (SELECT id, #{components} AS score FROM posts) AS x
+       /*where*/
+    SQL
 
-    )
-
-    builder.where("x.id = posts.id
-                  AND (posts.score IS NULL OR x.score <> posts.score)", @weightings)
+    builder.where("x.id = posts.id AND (posts.score IS NULL OR x.score <> posts.score)", @weightings)
 
     filter_topics(builder, min_topic_age)
 
@@ -52,16 +45,18 @@ class ScoreCalculator
   end
 
   def update_posts_rank(min_topic_age)
+    builder = SqlBuilder.new <<-SQL
+      UPDATE posts
+         SET percent_rank = x.percent_rank
+        FROM (
+          SELECT id
+               , percent_rank() OVER (PARTITION BY topic_id ORDER BY SCORE DESC) AS percent_rank
+            FROM posts
+        ) AS x
+        /*where*/
+    SQL
 
-    builder = SqlBuilder.new("UPDATE posts SET percent_rank = x.percent_rank
-              FROM (SELECT id, percent_rank()
-                    OVER (PARTITION BY topic_id ORDER BY SCORE DESC) as percent_rank
-                    FROM posts) AS x
-                   /*where*/")
-
-    builder.where("x.id = posts.id AND
-               (posts.percent_rank IS NULL OR x.percent_rank <> posts.percent_rank)")
-
+    builder.where("x.id = posts.id AND (posts.percent_rank IS NULL OR x.percent_rank <> posts.percent_rank)")
 
     filter_topics(builder, min_topic_age)
 
@@ -69,17 +64,21 @@ class ScoreCalculator
   end
 
   def update_topics_rank(min_topic_age)
-    builder = SqlBuilder.new("UPDATE topics AS t
-              SET has_summary = (t.like_count >= :likes_required AND
-                                 t.posts_count >= :posts_required AND
-                                 x.max_score >= :score_required),
-                  score = x.avg_score
-              FROM (SELECT p.topic_id,
-                           MAX(p.score) AS max_score,
-                           AVG(p.score) AS avg_score
-                    FROM posts AS p
-                    GROUP BY p.topic_id) AS x
-                    /*where*/")
+    builder = SqlBuilder.new <<-SQL
+      UPDATE topics t
+         SET has_summary = (t.like_count >= :likes_required AND
+                            t.posts_count >= :posts_required AND
+                            x.max_score >= :score_required)
+           , score = x.avg_score
+        FROM (
+            SELECT p.topic_id
+                 , MAX(p.score) AS max_score
+                 , AVG(p.score) AS avg_score
+              FROM posts p
+          GROUP BY p.topic_id
+        ) AS x
+      /*where*/
+    SQL
 
     builder.where("x.topic_id = t.id AND
                         (
@@ -96,29 +95,29 @@ class ScoreCalculator
               score_required: SiteSetting.summary_score_threshold)
 
     if min_topic_age
-      builder.where("t.bumped_at > :bumped_at ",
-                   bumped_at: min_topic_age)
+      builder.where("t.bumped_at > :bumped_at ", bumped_at: min_topic_age)
     end
 
     builder.exec
   end
 
   def update_topics_percent_rank(min_topic_age)
-
-    builder = SqlBuilder.new("UPDATE topics SET percent_rank = x.percent_rank
-          FROM (SELECT id, percent_rank()
-                OVER (ORDER BY SCORE DESC) as percent_rank
-                FROM topics) AS x
-                /*where*/")
+    builder = SqlBuilder.new <<-SQL
+      UPDATE topics
+         SET percent_rank = x.percent_rank
+        FROM (
+            SELECT id
+                 , percent_rank() OVER (ORDER BY SCORE DESC) AS percent_rank
+              FROM topics
+        ) AS x
+      /*where*/
+    SQL
 
     builder.where("x.id = topics.id AND (topics.percent_rank <> x.percent_rank OR topics.percent_rank IS NULL)")
 
-
     if min_topic_age
-      builder.where("topics.bumped_at > :bumped_at ",
-                   bumped_at: min_topic_age)
+      builder.where("topics.bumped_at > :bumped_at ", bumped_at: min_topic_age)
     end
-
 
     builder.exec
   end
@@ -126,9 +125,7 @@ class ScoreCalculator
 
   def filter_topics(builder, min_topic_age)
     if min_topic_age
-      builder.where('posts.topic_id IN
-                    (SELECT id FROM topics WHERE bumped_at > :bumped_at)',
-                   bumped_at: min_topic_age)
+      builder.where('posts.topic_id IN (SELECT id FROM topics WHERE bumped_at > :bumped_at)', bumped_at: min_topic_age)
     end
 
     builder

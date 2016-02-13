@@ -4,6 +4,25 @@ describe UserStat do
 
   it { is_expected.to belong_to :user }
 
+  it 'can ensure consistency' do
+    user = Fabricate(:user)
+
+    user.update_visit_record!(2.weeks.ago.to_date)
+    user.last_seen_at = 2.weeks.ago
+    user.save
+    user.update_visit_record!(1.day.ago.to_date)
+
+    user.reload
+    expect(user.user_stat.days_visited).to eq(2)
+
+    user.user_stat.days_visited = 1
+    user.save
+    UserStat.ensure_consistency!
+
+    user.reload
+    expect(user.user_stat.days_visited).to eq(2)
+  end
+
   it "is created automatically when a user is created" do
     user = Fabricate(:evil_trout)
     expect(user.user_stat).to be_present

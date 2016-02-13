@@ -245,7 +245,7 @@ module BackupRestore
 
       log "Archiving data dump..."
       FileUtils.cd(File.dirname(@dump_filename)) do
-        `tar --append --dereference --file #{tar_filename} #{File.basename(@dump_filename)}`
+        `tar --append -S --dereference --file #{tar_filename} #{File.basename(@dump_filename)}`
       end
 
       if @with_uploads

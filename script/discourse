@@ -37,7 +37,7 @@ class DiscourseCLI < Thor
     require "backup_restore/backuper"
 
     puts "Starting backup..."
-    backuper = BackupRestore::Backuper.new(Discourse.system_user.id)
+    backuper = BackupRestore::Backuper.new(Discourse.system_user.id, with_uploads: false)
     backup = backuper.run
     if filename.present?
       puts "Moving '#{backup}' to '#{filename}'"

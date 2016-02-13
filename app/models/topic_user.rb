@@ -321,25 +321,23 @@ SQL
     # we up these numbers so they are not in-sync
     # the simple fix is to add a column here, but table is already quite big
     # long term we want to split up topic_users and allow for this better
-    builder = SqlBuilder.new <<SQL
-
+    builder = SqlBuilder.new <<-SQL
 UPDATE topic_users t
-  SET
-    last_read_post_number = LEAST(GREATEST(last_read, last_read_post_number), max_post_number),
-    highest_seen_post_number = LEAST(max_post_number,GREATEST(t.highest_seen_post_number, last_read))
-FROM (
-  SELECT topic_id, user_id, MAX(post_number) last_read
-  FROM post_timings
-  GROUP BY topic_id, user_id
-) as X
-JOIN (
-  SELECT p.topic_id, MAX(p.post_number) max_post_number from posts p
-  GROUP BY p.topic_id
-) as Y on Y.topic_id = X.topic_id
+   SET last_read_post_number = LEAST(GREATEST(last_read, last_read_post_number), max_post_number)
+     , highest_seen_post_number = LEAST(max_post_number,GREATEST(t.highest_seen_post_number, last_read))
+  FROM (
+      SELECT topic_id, user_id, MAX(post_number) last_read
+        FROM post_timings
+    GROUP BY topic_id, user_id
+  ) AS X
+  JOIN (
+      SELECT p.topic_id, MAX(p.post_number) max_post_number from posts p
+    GROUP BY p.topic_id
+  ) AS Y ON Y.topic_id = X.topic_id
 /*where*/
 SQL
 
-    builder.where <<SQL
+    builder.where <<-SQL
 X.topic_id = t.topic_id AND
 X.user_id = t.user_id AND
 (

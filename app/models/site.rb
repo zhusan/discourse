@@ -42,8 +42,7 @@ class Site
         end
       end
 
-      allowed_topic_create_ids =
-        @guardian.anonymous? ? [] : Category.topic_create_allowed(@guardian).pluck(:id)
+      allowed_topic_create_ids = @guardian.anonymous? ? [] : Category.topic_create_allowed(@guardian).pluck(:id)
       allowed_topic_create = Set.new(allowed_topic_create_ids)
 
       by_id = {}

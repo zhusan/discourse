@@ -34,8 +34,7 @@ module Jobs
       end
 
       offset = (SiteSetting.max_new_topics).to_i
-      last_new_topic = Topic.order('created_at desc').offset(offset).select(:created_at).first
-      if last_new_topic
+      if last_new_topic = Topic.order(created_at: :desc).offset(offset).select(:created_at).first
         SiteSetting.min_new_topics_time = last_new_topic.created_at.to_i
       end
 

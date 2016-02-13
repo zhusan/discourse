@@ -137,9 +137,7 @@ class Post < ActiveRecord::Base
     update_flagged_posts_count
     TopicLink.extract_from(self)
     QuotedPost.extract_from(self)
-    if topic && topic.category_id && topic.category
-      topic.category.update_latest
-    end
+    Category.update_latest(topic.category_id) if topic.try(:category_id)
   end
 
   # The key we use in redis to ensure unique posts

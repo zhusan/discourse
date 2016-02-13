@@ -26,16 +26,15 @@ class DirectoryItem < ActiveRecord::Base
   end
 
   def self.refresh_period!(period_type)
-
     # Don't calculate it if the user directory is disabled
     return unless SiteSetting.enable_user_directory?
 
     since = case period_type
-            when :daily then 1.day.ago
-            when :weekly then 1.week.ago
-            when :monthly then 1.month.ago
+            when :daily     then 1.day.ago
+            when :weekly    then 1.week.ago
+            when :monthly   then 1.month.ago
             when :quarterly then 3.months.ago
-            when :yearly then 1.year.ago
+            when :yearly    then 1.year.ago
             else 1000.years.ago
             end
 

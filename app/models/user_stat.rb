@@ -3,6 +3,14 @@ class UserStat < ActiveRecord::Base
   belongs_to :user
   after_save :trigger_badges
 
+  def self.ensure_consistency!
+    exec_sql <<-SQL
+      UPDATE user_stats u
+         SET days_visited =  (SELECT COUNT(*) FROM user_visits v WHERE v.user_id = u.user_id)
+       WHERE days_visited <> (SELECT COUNT(*) FROM user_visits v WHERE v.user_id = u.user_id)
+    SQL
+  end
+
   # Updates the denormalized view counts for all users
   def self.update_view_counts(last_seen = 1.hour.ago)
 
@@ -11,17 +19,17 @@ class UserStat < ActiveRecord::Base
     #  we also ensure we only touch the table if data changes
 
     # Update denormalized topics_entered
-    exec_sql "UPDATE user_stats SET topics_entered = X.c
-             FROM
-            (SELECT v.user_id, COUNT(topic_id) AS c
-             FROM topic_views AS v
-             WHERE v.user_id IN (
-                SELECT u1.id FROM users u1 where u1.last_seen_at > :seen_at
-             )
-             GROUP BY v.user_id) AS X
-            WHERE
-                    X.user_id = user_stats.user_id AND
-                    X.c <> topics_entered
+    exec_sql "
+      UPDATE user_stats
+         SET topics_entered = X.c
+        FROM (
+                SELECT v.user_id, COUNT(topic_id) AS c
+                  FROM topic_views AS v
+                 WHERE v.user_id IN (SELECT u1.id FROM users u1 where u1.last_seen_at > :seen_at)
+              GROUP BY v.user_id
+             ) AS X
+        WHERE X.user_id = user_stats.user_id
+          AND X.c <> topics_entered
     ", seen_at: last_seen
 
     # Update denormalzied posts_read_count

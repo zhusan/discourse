@@ -4,23 +4,6 @@ describe UserVisit do
   let(:user) { Fabricate(:user) }
   let(:other_user) { Fabricate(:user) }
 
-  it 'can ensure consistency' do
-    user.update_visit_record!(2.weeks.ago.to_date)
-    user.last_seen_at = 2.weeks.ago
-    user.save
-    user.update_visit_record!(1.day.ago.to_date)
-
-    user.reload
-    expect(user.user_stat.days_visited).to eq(2)
-
-    user.user_stat.days_visited = 1
-    user.save
-    UserVisit.ensure_consistency!
-
-    user.reload
-    expect(user.user_stat.days_visited).to eq(2)
-  end
-
   describe '#by_day' do
     before(:each) do
       Timecop.freeze

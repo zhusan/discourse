@@ -141,9 +141,7 @@ class Group < ActiveRecord::Base
 
     # don't allow shoddy localization to break this
     validator = UsernameValidator.new(group.name)
-    unless validator.valid_format?
-      group.name = name
-    end
+    group.name = name unless validator.valid_format?
 
     # the everyone group is special, it can include non-users so there is no
     # way to have the membership in a table
@@ -157,15 +155,15 @@ class Group < ActiveRecord::Base
     # BEWARE: any of these subqueries could match ALL the user records,
     #         so they can't be used in IN clauses.
     remove_user_subquery = case name
-                when :admins
-                  "SELECT u.id FROM users u WHERE NOT u.admin"
-                when :moderators
-                  "SELECT u.id FROM users u WHERE NOT u.moderator"
-                when :staff
-                  "SELECT u.id FROM users u WHERE NOT u.admin AND NOT u.moderator"
-                when :trust_level_0, :trust_level_1, :trust_level_2, :trust_level_3, :trust_level_4
-                  "SELECT u.id FROM users u WHERE u.trust_level < #{id - 10}"
-                end
+                           when :admins
+                             "SELECT u.id FROM users u WHERE NOT u.admin"
+                           when :moderators
+                             "SELECT u.id FROM users u WHERE NOT u.moderator"
+                           when :staff
+                             "SELECT u.id FROM users u WHERE NOT u.admin AND NOT u.moderator"
+                           when :trust_level_0, :trust_level_1, :trust_level_2, :trust_level_3, :trust_level_4
+                             "SELECT u.id FROM users u WHERE u.trust_level < #{id - 10}"
+                           end
 
     remove_ids = exec_sql("SELECT gu.id id
                              FROM group_users gu,
@@ -174,7 +172,7 @@ class Group < ActiveRecord::Base
                               AND gu.user_id = u.id").map {|x| x['id']}
 
     if remove_ids.length > 0
-      remove_ids.each_slice(100) do |ids|
+      remove_ids.each_slice(5000) do |ids|
         GroupUser.where(id: ids).delete_all
       end
     end
@@ -193,16 +191,26 @@ class Group < ActiveRecord::Base
                  "SELECT u.id FROM users u"
                end
 
-    missing_users = GroupUser
+    missing_user_ids = GroupUser
       .joins("RIGHT JOIN (#{real_ids}) X ON X.id = user_id AND group_id = #{group.id}")
       .where("user_id IS NULL")
-      .select("X.id")
+      .pluck("X.id")
 
-    missing_users.each do |u|
-      group.group_users.build(user_id: u.id)
+    if missing_user_ids.size > 0
+      missing_user_ids.each_slice(5000) do |user_ids|
+        values = user_ids.map do |user_id|
+          v = [user_id, group.id, "now()", "now()"]
+          "(#{v.join(",")})"
+        end
+        exec_sql <<-SQL
+          INSERT INTO group_users (user_id, group_id, created_at, updated_at)
+          VALUES #{values.join(",")}
+        SQL
+      end
     end
 
-    group.save!
+    # reload
+    group.reload
 
     # we want to ensure consistency
     Group.reset_counters(group.id, :group_users)
@@ -211,9 +219,7 @@ class Group < ActiveRecord::Base
   end
 
   def self.refresh_automatic_groups!(*args)
-    if args.length == 0
-      args = AUTO_GROUPS.keys
-    end
+    args = AUTO_GROUPS.keys if args.length == 0
     args.each do |group|
       refresh_automatic_group!(group)
     end

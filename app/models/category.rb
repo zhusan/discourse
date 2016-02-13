@@ -123,21 +123,20 @@ class Category < ActiveRecord::Base
   end
 
   def self.update_stats
-    topics_with_post_count = Topic
-                              .select("topics.category_id, COUNT(*) topic_count, SUM(topics.posts_count) post_count")
-                              .where("topics.id NOT IN (select cc.topic_id from categories cc WHERE topic_id IS NOT NULL)")
-                              .group("topics.category_id")
-                              .visible.to_sql
+    topics_with_post_count = Topic.select("topics.category_id, COUNT(*) topic_count, SUM(topics.posts_count) post_count")
+                                  .where("topics.id NOT IN (SELECT topic_id FROM categories WHERE topic_id IS NOT NULL)")
+                                  .group("topics.category_id")
+                                  .visible
+                                  .to_sql
 
-    Category.exec_sql <<SQL
-    UPDATE categories c
-    SET   topic_count = x.topic_count,
-          post_count = x.post_count
-    FROM (#{topics_with_post_count}) x
-    WHERE x.category_id = c.id AND
-          (c.topic_count <> x.topic_count OR c.post_count <> x.post_count)
-
-SQL
+    exec_sql <<-SQL
+      UPDATE categories c
+         SET topic_count = x.topic_count
+           , post_count = x.post_count
+        FROM (#{topics_with_post_count}) x
+       WHERE x.category_id = c.id
+         AND (c.topic_count <> x.topic_count OR c.post_count <> x.post_count)
+    SQL
 
     # Yes, there are a lot of queries happening below.
     # Performing a lot of queries is actually faster than using one big update
@@ -149,7 +148,7 @@ SQL
     #
     # If you refactor this, test performance on a large database.
 
-    Category.all.each do |c|
+    Category.find_each do |c|
       topics = c.topics.visible
       topics = topics.where(['topics.id <> ?', c.topic_id]) if c.topic_id
       c.topics_year  = topics.created_since(1.year.ago).count
@@ -164,9 +163,10 @@ SQL
       c.posts_day   = posts.created_since(1.day.ago).count
 
       c.save if c.changed?
+
+      Category.update_latest(c.id)
     end
   end
-
 
   def visible_posts
     query = Post.joins(:topic)
@@ -321,25 +321,22 @@ SQL
     end
   end
 
-  def update_latest
-    latest_post_id = Post
-                        .order("posts.created_at desc")
-                        .where("NOT hidden")
-                        .joins("join topics on topics.id = topic_id")
-                        .where("topics.category_id = :id", id: self.id)
-                        .limit(1)
-                        .pluck("posts.id")
-                        .first
+  def self.update_latest(category_id)
+    latest_post_id = Post.visible
+                         .order(created_at: :desc)
+                         .where(topics: { category_id: category_id })
+                         .limit(1)
+                         .pluck(:id)
+                         .first
 
-    latest_topic_id = Topic
-                        .order("topics.created_at desc")
-                        .where("visible")
-                        .where("topics.category_id = :id", id: self.id)
-                        .limit(1)
-                        .pluck("topics.id")
-                        .first
+    latest_topic_id = Topic.visible
+                           .order(created_at: :desc)
+                           .where(category_id: category_id)
+                           .limit(1)
+                           .pluck(:id)
+                           .first
 
-    self.update_attributes(latest_topic_id: latest_topic_id, latest_post_id: latest_post_id)
+    Category.where(id: category_id).update_all(latest_topic_id: latest_topic_id, latest_post_id: latest_post_id)
   end
 
   def self.resolve_permissions(permissions)

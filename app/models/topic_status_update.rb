@@ -37,8 +37,7 @@ TopicStatusUpdate = Struct.new(:topic, :user) do
 
   def update_read_state_for(status, old_highest_read)
     if status.autoclosed?
-      # let's pretend all the people that read up to the autoclose message
-      # actually read the topic
+      # let's pretend all the people that read up to the autoclose message actually read the topic
       PostTiming.pretend_read(topic.id, old_highest_read, topic.highest_post_number)
     end
   end

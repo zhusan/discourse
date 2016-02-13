@@ -35,6 +35,7 @@ module UserNameSuggester
   end
 
   def self.sanitize_username(name)
+    name ||= ""
     name = ActiveSupport::Inflector.transliterate(name)
     # 1. replace characters that aren't allowed with '_'
     name.gsub!(UsernameValidator::CONFUSING_EXTENSIONS, "_")
@@ -49,7 +50,7 @@ module UserNameSuggester
   end
 
   def self.rightsize_username(name)
-    name.ljust(User.username_length.begin, '1')[0, User.username_length.end]
+    name.ljust(User.username_length.begin, "1")[0, User.username_length.end]
   end
 
 end

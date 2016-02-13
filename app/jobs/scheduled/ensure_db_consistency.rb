@@ -4,7 +4,7 @@ module Jobs
     every 12.hours
 
     def execute(args)
-      UserVisit.ensure_consistency!
+      UserStat.ensure_consistency!
       Group.refresh_automatic_groups!
       Notification.ensure_consistency!
       UserAction.ensure_consistency!

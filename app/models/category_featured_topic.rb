@@ -5,12 +5,12 @@ class CategoryFeaturedTopic < ActiveRecord::Base
   # Populates the category featured topics
   def self.feature_topics
     transaction do
-      current = {}
+      current = Hash.new([])
       CategoryFeaturedTopic.select(:topic_id, :category_id).order(:rank).each do |f|
-        (current[f.category_id] ||= []) << f.topic_id
+        current[f.category_id] << f.topic_id
       end
       Category.select(:id, :topic_id).find_each do |c|
-        CategoryFeaturedTopic.feature_topics_for(c, current[c.id] || [])
+        CategoryFeaturedTopic.feature_topics_for(c, current[c.id])
         CategoryFeaturedUser.feature_users_in(c.id)
       end
     end

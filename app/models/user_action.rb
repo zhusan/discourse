@@ -11,7 +11,7 @@ class UserAction < ActiveRecord::Base
   BOOKMARK = 3
   NEW_TOPIC = 4
   REPLY = 5
-  RESPONSE= 6
+  RESPONSE = 6
   MENTION = 7
   QUOTE = 9
   EDIT = 11
