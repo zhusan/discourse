@@ -45,7 +45,7 @@
     height: 60px;
 
     .ember-view {
-      &:not(.title):not(li):not(.list-tags):not(button):not(.topic-statuses) {
+      &:not(.title):not(li):not(.list-tags):not(button):not(.topic-statuses):not(input) {
         min-width: 0; //general flexbox fix
         flex-grow: 1; //firefox fix
         width: 100%;  //ie fix
@@ -82,12 +82,13 @@
     @include flex(0, 0, auto);
     flex-wrap: nowrap;
     margin-left: auto;
+    position: relative;
 
     .icons .badge-notification {
       position: absolute;
       z-index: 1;
-      top: 8px;
-      margin-left: -6px;
+      top: -7px;
+      margin-left: -2px;
     }
   }
 
