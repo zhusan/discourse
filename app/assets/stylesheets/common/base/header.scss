@@ -99,7 +99,6 @@
 
     .header-dropdown-toggle {
       flex-wrap: nowrap;
-      width: 40px;
       height: 40px;
     }
 
@@ -130,6 +129,8 @@
       i {
         font-size: 1.8em;
         margin: 0 auto;
+        width: 40px;
+        text-align: center;
         @include align-self(center);
       }
     }
