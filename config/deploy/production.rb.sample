@@ -1,0 +1,34 @@
+# Simple Role Syntax
+# ==================
+# Supports bulk-adding hosts to roles, the primary server in each group
+# is considered to be the first unless any hosts have the primary
+# property set.  Don't declare `role :all`, it's a meta role.
+set :application, 'discourse'
+set :branch, 'master'
+
+role :app, %w{43.254.217.193}
+role :web, %w{43.254.217.193}
+role :db,  %w{43.254.217.193}
+
+
+# Extended Server Syntax
+# ======================
+# This can be used to drop a more detailed server definition into the
+# server list. The second argument is a, or duck-types, Hash and is
+# used to set extended properties on the server.
+
+server '43.254.217.193',
+  user: 'rails',
+  roles: %w{web app db},
+  ssh_options: {
+    user: 'rails', # overrides user setting above
+    # keys: %w(/home/user_name/.ssh/id_rsa),
+    forward_agent: false,
+    auth_methods: %w(password)
+  # password: 'please use keys'
+  }
+
+set :rails_env, 'production'
+set :deploy_to, '/home/rails/apps/discourse'
+
+

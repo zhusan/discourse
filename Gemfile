@@ -110,6 +110,12 @@ gem 'thin', require: false
 gem 'highline', require: false
 gem 'rack-protection' # security
 
+gem 'capistrano', require: false
+gem 'capistrano-rails', require: false
+gem 'capistrano-rvm', require: false
+gem 'capistrano-sidekiq', require: false
+gem 'capistrano-bundler', require: false
+
 # Gems used only for assets and not required
 # in production environments by default.
 # allow everywhere for now cause we are allowing asset debugging in prd

@@ -11,7 +11,7 @@ worker_processes (ENV["UNICORN_WORKERS"] || 3).to_i
 working_directory discourse_path
 
 # listen "#{discourse_path}/tmp/sockets/unicorn.sock"
-listen (ENV["UNICORN_PORT"] || 3000).to_i
+listen (ENV["UNICORN_PORT"] || 8081).to_i
 
 # nuke workers after 30 seconds instead of 60 seconds (the default)
 timeout 30
