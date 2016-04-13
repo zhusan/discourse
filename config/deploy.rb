@@ -72,7 +72,7 @@ namespace :unicorn do
   desc "start unicorn"
   task :start do
     on roles(:app) do
-      with rails_env: fetch(:rails_env) do
+      with rails_env: fetch(:rails_env), ruby_gc_malloc_limit: 90000000, unicorn_sidekiqs: 1 do
         within "#{deploy_to}/current" do
           if test("[ -f #{deploy_to}/current/tmp/pids/unicorn.pid ]")
             warn " unicorn is already RUNNING. "
@@ -166,7 +166,7 @@ namespace :log do
     end
   end
 
-  
+
   %w[unicorn.stderr uncorn.stdout].each do |log_type|
     desc "tail #{log_type} logs"
     task log_type do
